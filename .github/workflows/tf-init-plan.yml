@@ -47,7 +47,7 @@ jobs:
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.SA_KEY }}
         id: validate
-        run: terraform validate -var="repo_name=${REPO_NAME}" -var="repo_description=${REPO_NAME}" -no-color
+        run: terraform validate -var="repo_name=${REPO_NAME}" -var="repo_description=${REPO_DESCRIPTION}" -no-color
 
       - name: Terraform Plan
         env:
@@ -55,7 +55,7 @@ jobs:
         id: plan
         run: |
           mkdir ${{ github.workspace }}/outputs
-          terraform plan -var="repo_name=${REPO_NAME}" -var="repo_description=${REPO_NAME}" -no-color -out="plan.tfplan"
+          terraform plan -var="repo_name=${REPO_NAME}" -var="repo_description=${REPO_DESCRIPTION}" -no-color -out="plan.tfplan"
           terraform show --json plan.tfplan > ${{ github.workspace }}/outputs/json_plan.json
         continue-on-error: true
 

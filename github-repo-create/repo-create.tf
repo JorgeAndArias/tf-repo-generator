@@ -1,5 +1,5 @@
 provider "github" {
-  owner = "jorgeandarias"
+  # owner = "jorgeandarias"
 }
 resource "github_repository" "new_repo" {
   name        = var.repo_name

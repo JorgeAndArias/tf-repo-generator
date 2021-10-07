@@ -1,0 +1,62 @@
+name: tf-apply
+on:
+  workflow_dispatch:
+    inputs:
+      repo_name:
+        description: 'Name of the new repo'
+        required: true
+      repo_description:
+        description: 'Description of the new repo'
+        required: true
+
+env:
+    ENVIRONMENT: infra-runner
+    TERRAFORM_VERSION: '0.14.0'
+    TF_WORKING_DIR: '.'
+    GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.SA_KEY }}
+    STATE_BUCKET: 'gh_repos'
+    GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+    # GITHUB_ORGANIZATION: ${{ secrets.GITHUB_ORGANIZATION }}
+    # GITHUB_OWNER: ${{ secrets.GITHUB_ORGANIZATION }}
+    # AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    # AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    # AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+    REPO_NAME: ${{ github.event.inputs.repo_name }}
+    REPO_DESCRIPTION: ${{ github.event.inputs.repo_description }}
+
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hashicorp/setup-terraform@v1
+
+      - name: checkout
+        id: checkout_code
+        uses: actions/checkout@v2
+
+      - name: Terraform Init
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.SA_KEY }}
+        id: init
+        run: terraform init -backend-config="bucket=${STATE_BUCKET}" -backend-config="prefix=${REPO_NAME}"
+
+      - name: Terraform Validate
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.SA_KEY }}
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.SA_KEY }}
+        id: plan
+        run: terraform plan -var="repo_name=${REPO_NAME}" -var="repo_description=${REPO_NAME}" -out="plan.tfplan" -no-color
+        continue-on-error: true
+
+      - name: Terraform Apply
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.SA_KEY }}
+        id: apply
+        run: terraform apply plan.tfplan

@@ -1,0 +1,68 @@
+name: tf-init-plan
+on:
+  workflow_dispatch:
+    inputs:
+      repo_name:
+        description: 'Name of the new repo'
+        required: true
+      repo_description:
+        description: 'Description of the new repo'
+        required: true
+
+env:
+    ENVIRONMENT: infra-runner
+    TERRAFORM_VERSION: '0.14.0'
+    TF_WORKING_DIR: '.'
+    GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.SA_KEY }}
+    STATE_BUCKET: gh_repos
+    GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+    # GITHUB_ORGANIZATION: ${{ secrets.GH_ORGANIZATION }}
+    # GITHUB_OWNER: ${{ secrets.GH_ORGANIZATION }}
+    REPO_NAME: ${{ github.event.inputs.repo_name }}
+    REPO_DESCRIPTION: ${{ github.event.inputs.repo_description }}
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hashicorp/setup-terraform@v1
+
+      - name: checkout
+        id: checkout_code
+        uses: actions/checkout@v2
+
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Init
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.SA_KEY }}
+        id: init
+        run: terraform init -backend-config="bucket=${STATE_BUCKET}" -backend-config="prefix=${REPO_NAME}"
+
+      - name: Terraform Validate
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.SA_KEY }}
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.SA_KEY }}
+        id: plan
+        run: |
+          mkdir ${{ github.workspace }}/outputs
+          terraform plan -var="repo_name=${REPO_NAME}" -var="repo_description=${REPO_NAME}" -no-color -out="plan.tfplan"
+          terraform show --json plan.tfplan > ${{ github.workspace }}/outputs/json_plan.json
+        continue-on-error: true
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: json_plan.json
+          path: ${{ github.workspace }}/outputs/json_plan.json
+          if-no-files-found: error

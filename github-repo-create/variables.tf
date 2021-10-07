@@ -4,6 +4,6 @@ variable "repo_name" {
 }
 
 variable "repo_description" {
-  type = string
+  type        = string
   description = "Description for the new repo"
 }

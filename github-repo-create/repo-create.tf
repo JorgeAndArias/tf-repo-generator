@@ -4,7 +4,7 @@ provider "github" {
 resource "github_repository" "new_repo" {
   name        = var.repo_name
   description = var.repo_description
-  visibility = "public"
+  visibility  = "public"
 
   delete_branch_on_merge = true
   archive_on_destroy     = true

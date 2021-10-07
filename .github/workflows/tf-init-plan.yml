@@ -47,7 +47,7 @@ jobs:
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.SA_KEY }}
         id: validate
-        run: terraform validate -var="repo_name=${{ github.event.inputs.repo_name }}" -var="repo_description=${{ github.event.inputs.repo_description }}" -no-color
+        run: terraform validate -no-color
 
       - name: Terraform Plan
         env:
